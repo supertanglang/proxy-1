@@ -4,20 +4,23 @@ import thread
 import re
 import logging
 import logging.config
+import getopt
+import sys
 
-VERSION       = 'Proxy/0.0'
+VERSION		  = 'Proxy/0.0'
 HTTP_VERSION  = 'HTTP/1.1'
-BUFF_SIZE     = 32764
-TIMEOUT       = 50000
-CONFIGURATION = 'proxy.conf'
+BUFF_SIZE	  = 32764
+TIMEOUT		  = 50000
 
 # Configure Logging
-logging.config.fileConfig('proxy.log.conf')
-log = logging.getLogger('Proxy')
-log.setLevel(logging.DEBUG)
+log = None
 
-# routing configuration
-routes = []
+# configurations
+conf = { 'routes'	:	[],
+		 'address'	:	'localhost',
+		 'port'		:	8080,
+		 'app_conf'	:	'proxy.conf',
+		 'log_conf'	:	'proxy.log.conf'}
 
 class Route(object):
 	def __init__(self,pattern):
@@ -110,7 +113,7 @@ class ConnectionHandler(object):
 
 		try:
 			method, path, protocol, tail = self.get_base_header(client)
-			matches = filter(lambda x: x.isMatch(path),routes)
+			matches = filter(lambda x: x.isMatch(path),conf['routes'])
 
 			if len(matches) == 0:
 				log.error("No matches")
@@ -151,15 +154,10 @@ def parse_configuration( filename ):
 			routes.append(ProxyRoute(keys['expr'],keys['host'],keys['port'],keys['trim']))
 		if keys['type'] == 'host':
 			routes.append(HTTPRoute(keys['expr'],keys['root']))
-
-	for r in routes:
-		log.debug(str(r))
 	return routes
 	
 
 def start_server(host='0.0.0.0', port=8080):
-	global routes
-	routes = parse_configuration(CONFIGURATION)
 	socket_type = socket.AF_INET
 	server		= socket.socket(socket_type)
 	server.bind((host, port))
@@ -174,5 +172,38 @@ def start_server(host='0.0.0.0', port=8080):
 	finally:
 		server.close()
 
+def usage():
+	print 'usage'
+
+def parse_arguments((optlist,args)):
+	global conf, log
+	options = { '-a' : 'address'	,
+				'-p' : 'port'		,
+				'-c' : 'app_conf'	,
+				'-l' : 'log_conf'	,
+				'-d' : 'debug'		}
+
+	for (opt,arg) in optlist:
+		conf[options[opt]] = arg
+
+	logging.config.fileConfig(conf['log_conf'])
+	log = logging.getLogger('Proxy')
+	log.setLevel(logging.INFO)
+
+	# debug configuration
+	if conf.has_key('debug'):
+		log.setLevel(logging.DEBUG)
+
+	# routes
+	conf['routes'] = parse_configuration(conf['app_conf'])
+	map( lambda x: log.debug(x), conf['routes'])
+
 if __name__ == '__main__':
+	try:
+		parse_arguments(getopt.getopt(sys.argv[1:], 'a:p:c:l:d'))
+	except getopt.GetoptError as err:
+		print str(err)
+		usage()
+		sys.exit(1)
+	
 	start_server()
