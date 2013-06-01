@@ -157,7 +157,9 @@ def parse_configuration( filename ):
 	return routes
 	
 
-def start_server(host='0.0.0.0', port=8080):
+def start_server():
+	host = conf['address']
+	port = conf['port']
 	socket_type = socket.AF_INET
 	server		= socket.socket(socket_type)
 	server.bind((host, port))
