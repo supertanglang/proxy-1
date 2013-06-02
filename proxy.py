@@ -175,7 +175,14 @@ def start_server():
 		server.close()
 
 def usage():
-	print 'usage'
+	print "Usage: proxy.py [-a address] [-p port] [-c config]"
+	print "			[-l log_config] [-d]"
+	print ""
+	print " -a    address   Address to bind to "
+	print " -p    port      Port to listen to"
+	print " -c    conf      Services configuration file"
+	print " -l    conf      Log configuration file"
+	print " -d              Enable debug"
 
 def parse_arguments((optlist,args)):
 	global conf, log
