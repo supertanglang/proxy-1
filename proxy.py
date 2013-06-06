@@ -2,6 +2,7 @@ import socket
 import select
 import thread
 import re
+import os
 import logging
 import logging.config
 import getopt
@@ -10,7 +11,7 @@ import sys
 VERSION		  = 'Proxy/0.0'
 HTTP_VERSION  = 'HTTP/1.1'
 BUFF_SIZE	  = 32764
-TIMEOUT		  = 50000
+TIMEOUT		  = 6000
 
 # Configure Logging
 log = None
@@ -91,6 +92,7 @@ class ProxyRoute(Route):
 			path = path[path.find('/',1):]
 		
 		message = '%s %s %s\r\n'%(method, path, protocol)+tail
+		log.debug("Requested: "+method+" "+path)
 		#print message
 		target.send(message)
 		self.socket_read_write(client,target)
@@ -119,7 +121,7 @@ class ConnectionHandler(object):
 				log.error("No matches")
 				return
 		
-			print matches[0]
+			log.debug(path+" is matching: "+str(matches[0]))
 			matches[0].action(client,method,path,protocol,tail)
 		finally:
 			client.close()
@@ -162,12 +164,13 @@ def start_server():
 	port = conf['port']
 	socket_type = socket.AF_INET
 	server		= socket.socket(socket_type)
-	server.bind((host, port))
-	log.info("Serving on %s:%d."%(host, port))
+	server.bind((host, int(port)))
+	log.info("Serving on %s:%s."%(host, port))
 	server.listen(0)
 	try:
 		while 1:
 			client = server.accept()
+			log.debug('Connection Received')
 			thread.start_new_thread(ConnectionHandler, (client,))
 	except Exception, e:
 		log.info("Exception: "+str(e))
